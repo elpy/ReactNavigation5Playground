@@ -21,5 +21,5 @@ export const SettingsScreen = () => {
 };
 
 const logOut = () => {
-  authService.isUserLoggedIn = false;
+  authService.logOut();
 };

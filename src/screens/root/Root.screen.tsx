@@ -1,3 +1,4 @@
+import { observer } from 'mobx-react';
 import React from 'react';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createMaterialBottomTabNavigator } from '@react-navigation/material-bottom-tabs';
@@ -38,10 +39,11 @@ const navigationRef = React.createRef<NavigationContainerRef>();
 export const navigationService = new NavigationService(navigationRef);
 export const authService = new AuthService();
 
-export const RootScreen = () => {
+export const RootScreen = observer(() => {
   return (
     <NavigationContainer
       ref={navigationRef}
+      onReady={navigationService.subscribeForStateUpdates}
       onStateChange={navigationService.stateDidChange}>
       {!authService.isUserLoggedIn ? (
         <EnterNavigationStack.Navigator initialRouteName={'Welcome'}>
@@ -72,7 +74,7 @@ export const RootScreen = () => {
       )}
     </NavigationContainer>
   );
-};
+});
 
 const MainBottomTabBar = () => {
   return (

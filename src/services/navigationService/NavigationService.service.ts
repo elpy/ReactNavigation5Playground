@@ -1,14 +1,20 @@
-import { NavigationContainerRef } from '@react-navigation/native';
+import { EventListenerCallback } from '@react-navigation/core/src/types';
+import {
+  NavigationContainerRef,
+  NavigationContainerEventMap,
+  PartialState,
+} from '@react-navigation/native';
 import { NavigationState } from '@react-navigation/routers';
 import { StackActions } from '@react-navigation/native';
+import { action, makeObservable, observable } from 'mobx';
 
 export class NavigationService {
+  @observable.ref public activeRoutes: string[] = [];
   private _navigationRef: React.RefObject<NavigationContainerRef>;
 
   constructor(navigationRef: React.RefObject<NavigationContainerRef>) {
     this._navigationRef = navigationRef;
-
-    this._navigationRef.current?.addListener('state', this._callback);
+    makeObservable(this);
   }
 
   public replace = (to: string) => {
@@ -35,16 +41,65 @@ export class NavigationService {
     this._navigationRef.current.goBack();
   };
 
+  // Первый вариант получения изменений роутинга
+  @action
   public stateDidChange = (state: NavigationState | undefined) => {
-    if (!state) {
+    if (!state || state.index === undefined) {
       return;
     }
 
-    const currentRoute = state.routes[state.index];
-    console.log('stateDidChange', `current screen is ${currentRoute.name}`);
+    const currentRoutes = this.extractActiveRoutes(state);
+    this.activeRoutes = currentRoutes;
+
+    console.log(
+      'stateDidChange event 1: ',
+      `current screen is ${currentRoutes}`,
+    );
   };
 
-  private _callback = () => {
-    console.log(`another state change listening callback(${2})`);
+  // Второй вариант получения изменений роутинга
+  public subscribeForStateUpdates = () => {
+    if (!this._navigationRef.current) {
+      return;
+    }
+
+    this._navigationRef.current!.addListener('state', this._callback);
+  };
+
+  @action
+  private _callback: EventListenerCallback<
+    NavigationContainerEventMap,
+    'state'
+  > = (event) => {
+    const { state } = event.data;
+
+    if (!state || state.index === undefined) {
+      return;
+    }
+
+    const currentRoutes = this.extractActiveRoutes(state);
+    this.activeRoutes = currentRoutes;
+
+    console.log(
+      'stateDidChange event 2: ',
+      `current screen is ${currentRoutes}`,
+    );
+  };
+
+  private extractActiveRoutes = (
+    state: NavigationState | PartialState<NavigationState>,
+  ): string[] => {
+    if (!state || state.index === undefined) {
+      return [];
+    }
+
+    const { routes, index } = state;
+
+    if (routes[index].state) {
+      const subState = routes[index].state!;
+      return [routes[index].name, ...this.extractActiveRoutes(subState)];
+    } else {
+      return [routes[index].name];
+    }
   };
 }

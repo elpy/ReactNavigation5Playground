@@ -25,5 +25,5 @@ export const SignInScreen = () => {
 };
 
 const enter = () => {
-  authService.isUserLoggedIn = true;
+  authService.logIn();
 };
